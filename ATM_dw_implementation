@@ -1,0 +1,68 @@
+
+Joining tables in order to gather data from database 1.
+SELECT R.RepairID, R.ItemNumber, R.ItemDescription, R.RepairDate, R.RepairCost, A.ATMID, A.Amount, A.Password, C.CustomerID, C.ContractID, C.LocationID,
+C.ContractTerm, C.CustomerName, C.ContactName, C.Phone, C.Email, C.Street, C.City, C.State, C.Zip, T.InvoiceNumber, T.DateAcquired, T.VendorName, T.VendorEmail,
+T.V endorPhone
+FROM REPAIRS R, ATM A, CUSTOMER C, TRANSACTION T WHERE A.ATMID = R.ATMID(+)
+AND C.CustomerID = A.CustomerID(+)
+AND T.InvoiceNumber = A.InvoiceNumber(+);
+Joining tables in order to gather data from database 2.
+SELECT V.VendorID, V.VendorEmail, V.VendorPhone, V.VendorStreet, V.VendorCity, V.VendorState, V.VendorZip, T.DateAcquired, T.AcquisitionPrice, S.SupplyID,
+S.SupplyDescription, S.SupplyCost
+FROM VENDOR V, TRANSACTION T, SUPPLIES S
+WHERE V.VendorID = T.VendorID(+)
+AND T.InvoiceNumber = S.InvoiceNumber(+);
+CREATE TABLE LOCATION (
+LocationID Number(6,0)NOTNULL,
+CustomerName Char(25) NOT NULL,
+CONSTRAINT LocationIDPK PRIMARY KEY(LocationID) ); COMMIT;
+CREATE TABLE CONTRACT (
+ContractID Number(6,0)NOTNULL,
+ContractType Char(25) NOT NULL,
+CONSTRAINT ContractIDPK PRIMARY KEY(ContractID) ); COMMIT;
+ 
+CREATE TABLE ATM_PLACEMENT ( DateAcquired Date NOTNULL, LocationID Numeric(10)NOTNULL, ContractID Numeric(10)NOTNULL, ATMID Numeric(10) NOT NULL, ContactName VarChar(25), NULL, Phone Numeric(10) NULL,
+Email VarChar(25) NULL, Street VarChar(25) NULL, City VarChar(25) NULL, State VarChar(25) NULL, ZIP Numeric(10) NULL, VendorID Numeric(10) NULL, VendorName Varchar(25) NULL, VendorEmail Varchar(25) NULL, VendorPhone Varchar(25) NULL, VendorStreet Varchar(25) NULL,
+VendorCity
+VendorState
+VendorZIP
+InvoiceNumber Numeric(10) NULL,
+SupplyCost Number(8,0) NULL,
+AcquisitionPrice Number(8,0) NULL,
+RepairCost Number(8,0) NULL,
+Amount Number(8,0) NULL,
+ContractTerm Number(8,0) NULL,
+SupplyID Numeric(10) NULL,
+SupplyDescription Varchar(100) NULL,
+RepairID Numeric(10) NULL,
+ItemNumber Numeric(10) NULL,
+ItemDescription Varchar(100) NULL,
+RepairDate Date NULL,
+AtmPassword Numeric NULL,
+CONSTRAINT LocationIDFK FOREIGN KEY(LocationID)
+REFERENCES LOCATION(LocationID),
+CONSTRAINT ContractIDFK FOREIGN KEY(ContractID)
+REFERENCES CONTRACT(ContractID) ); COMMIT;
+The ATM placement data will be indexed by contract type.
+CREATE INDEX IDX_CONTRACT_TYPE ON CONTRACT(ContractType);
+Views
+Supply Chain Management View
+CREATE VIEW SUPPLY_CHAIN_MANAGEMENT AS(
+SELECT ContractID, LocationID, ContactName, Phone, Email, Street, City, State, ZIP, VendorID, VendorName, VendorEmail, VendorPhone, VendorStreet,
+VendorCity, VendorState, VendorZIP
+FROM ATM_PLACEMENT
+GROUP BY ContractID, LocationID );
+Varchar(25) NULL, VarChar(25) NULL, Numeric(10) NULL,
+  
+Financials View
+CREATE VIEW FINANCIALS AS(
+SELECT ContractID, LocationID, InvoiceNumber, SupplyCost, AcquisitionPrice, RepairCost, Amount, ContractTerm
+FROM ATM_PLACEMENT
+GROUP BY ContractID, LocationID
+);
+Asset Management View
+CREATE VIEW ASSET_MANAGEMENT AS(
+SELECT ContractID, LocationID, SupplyID, SupplyDescription, RepairID, ItemNumber, ItemDescription, RepairDate, AtmPassword
+FROM ATM_PLACEMENT
+GROUP BY ContractID, LocationID
+);
