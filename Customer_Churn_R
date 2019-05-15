@@ -1,0 +1,180 @@
+#Libraries and Packages 
+library(caret) #Libary classification and regression training
+library(rpart) #Library for data partition and data preprocessing
+library(rpart.plot) #Data visualization for decision trees
+library(rminer) #Data mining classification and regression methods
+library(nnet) #Neural Network package 
+library(ggplot2) #Further Visualization
+library(Amelia) #For missing data in data frame 
+library(caTools) #Performance of moving window statistics 
+library(dummies) #to convert factors to dummy variables 
+
+
+#Set random seed in order to replicate results
+set.seed(100) 
+
+# Load Customer Churn Data Set 
+Churn.data <-read.csv("/Users/manijbattle/Downloads/BANK CHURN DATASET.csv",header=TRUE)
+
+##### DATA EXPLORATION #####
+
+#Descriptive Statistics and Data Cleaning
+str(Churn.data) #To gain structure of the data
+summary(Churn.data) #To get an understanding of the data 
+
+
+#Missing Values 
+missmap(Churn.data,
+        col=c("Red", "White"),
+        x.cex = .8,
+        ylab= "Row Number",
+        y.cex = .3,
+        main = "Missing Churn Data",
+        rank.order = T,
+        y.labels = c(seq(1, 245500, by=500)),
+        y.at = c(seq(1,245500, by=500)))
+
+
+#Customer Churn Overview 
+ggplot(Churn.data, aes(x= Churn)) + 
+  geom_histogram(binwidth = 1, fill = c("Blue", "Dark Red")) + 
+  labs(title = "Customer Bank Churn", x="Churn", y="Frequency")
+
+
+#Age Overview 
+ggplot(Churn.data, aes(x=Churn.data$Age)) +
+  geom_histogram(color="Gray", fill = "Blue", binwidth = 3)+
+  labs(x = "Age of Customer", y="Count", title= "Histogram of Customer Age")
+mean(Churn.data$Age) # = 38.246
+
+
+#Age of Account Overview 
+ggplot(Churn.data, aes(x=Churn.data$Age.of.Account..Months.)) +
+  geom_histogram(color="Gray", fill = "Green", binwidth = 3)+
+  labs(x = "Age of Account in Months", y="Count", title= "Histogram of Account Age (Months)")
+mean(Churn.data$Age.of.Account..Months.) # = 33.63 Months
+
+
+#Occupation Overview 
+ggplot(Churn.data, aes(x=Churn.data$Occupation.Group)) + 
+  geom_bar(stat="count", fill="orange") +
+  labs(x= "Occupation", y="Count", title = "Bar Chart of Occupations of Customers")
+
+
+##### Model Building #####
+
+#Convert Factor levels into Dummy Variables 
+marital.dummies <- dummy(Churn.data$Marital.Status, sep = '_') #Transform marital factor to dummy (2 Levels)
+Occupation.dummies <- dummy(Churn.data$Occupation.Group, sep = '_') #Transform Occupation factor to dummy (11 levels)
+Gender.dummies <- dummy(Churn.data$Gender, sep = '_') #Transform Gender factor to dummy (2 Levels)
+Churn.data.cleaned <- cbind(Churn.data, marital.dummies, Occupation.dummies, Gender.dummies) #Combine columns with original dataset
+Churn.data.cleaned <- Churn.data.cleaned[,c(1:6,9:11,13:29)] #To obtain only the columns needed
+
+#Data Partition 75/25 Split
+inTrain<-createDataPartition(y=Churn.data.cleaned$Churn, p=.75, list = FALSE) #To generate a partition of the data
+Churn.train<-Churn.data.cleaned[inTrain,] #To partition the data into training dataset
+Churn.test<-Churn.data.cleaned[-inTrain,] #To partition the remaining data into testing dataset
+
+
+### Model 1 Logistic Regression ###
+Churn.Model <- glm(Churn ~., family = "binomial", Churn.train) #Logistic Regression Model
+summary(Churn.Model) #Summary of Model
+
+#Identify the best predictors
+confint(Churn.Model, level = .95)
+
+#Model Prediction
+Churn.Prediction <- predict(Churn.Model, Churn.test, type='response')
+
+
+#Generate ROC curve
+model.AUC <- colAUC(Churn.Prediction, Churn.test$Churn, plotROC = T)
+abline(h=model.AUC, col = 'Green')
+text(.2,.9, cex = .8, labels = paste("Optimal Cutoff:", round(model.AUC,4)))
+
+#Convert probabilities to Class
+Churn.Class <- ifelse(Churn.Prediction > 0.7225, 1, 0)
+
+#Transform back to factors for comparison
+Churn.Class <- factor(Churn.Class)
+Churn.test$Churn <- factor(Churn.test$Churn)
+
+#Confusion Matrix
+confusionMatrix(Churn.Class, Churn.test$Churn)
+
+
+#### Second Model Neural Network ####
+NNlog<-multinom(Churn~.,data=Churn.train) #To assign logistic regression based neural network to a name
+summary(NNlog) #summary of model
+
+#Model Prediction
+Churn.Prediction2<-predict(NNlog, Churn.test) #Prediction using Neural Network model in conjunction with the testing dataset
+Prediction.Table <- table(Churn.Prediction2, Churn.test$Churn) #Put information into confusion matrix
+Prediction.Table #Print Confusion Matrix
+
+#Correct Classification
+sum(diag((Prediction.Table))/sum(Prediction.Table))
+
+#Missclassification Rate
+1 - sum(diag((Prediction.Table))/sum(Prediction.Table))
+
+
+#### Third Model Decision Trees ####
+
+# Load Customer Churn Data Set 
+data <-read.csv("/Users/manijbattle/Downloads/BANK CHURN DATASET.csv",header=TRUE)
+str(data) #structure of data 
+data$ChurnF <- factor(data$Churn) #Transform to factor from integer
+
+#Partition Data once again
+
+data.partition<- sample(2,nrow(data), replace = TRUE, prob = c(0.75,0.25))
+data.train <- data[data.partition==1,] #data partition 1
+data.test <- data[data.partition==2,] #data partition 2
+
+#### Build Decision Tree ####
+d.tree <- rpart(data.train$ChurnF~data.train$Customer.ID + data.train$Average.Daily.Balance + data.train$Interest.Paid + data.train$Cash.Advances +
+                  data.train$Balance.Transferred + data.train$Marital.Status + data.train$Occupation.Group + data.train$Age.of.Account..Months.
+                + data.train$Age + data.train$Bill.Cycle + data.train$Gender + data.train$Credit.Limit,data.train)
+
+summary(d.tree) #Decision Tree Summary
+
+
+#To plot decision tree
+rpart.plot(d.tree, extra=5)
+
+
+#Churn Prediction
+tree.prediction<-predict(d.tree, data.train,type="class")
+
+#To check levels
+levels(tree.prediction)
+levels(data.test$ChurnF)
+
+#Missclassification Rate 
+confusionMatrix(tree.prediction, data.train$ChurnF)
+
+#### Test Data Set ###
+d.tree <- rpart(data.test$ChurnF~data.test$Customer.ID + data.test$Average.Daily.Balance + data.test$Interest.Paid + data.test$Cash.Advances +
+                  data.test$Balance.Transferred + data.test$Marital.Status + data.test$Occupation.Group + data.test$Age.of.Account..Months.
+                + data.test$Age + data.test$Bill.Cycle + data.test$Gender + data.test$Credit.Limit,data.test)
+
+summary(d.tree) #Decision Tree Summary
+
+
+#To plot decision tree
+rpart.plot(d.tree, extra=5)
+
+
+#Churn Prediction
+tree.prediction<-predict(d.tree, data.test,type="class")
+
+#To check levels
+levels(tree.prediction)
+levels(data.test$ChurnF)
+
+#Missclassification Rate 
+confusionMatrix(tree.prediction, data.test$ChurnF)
+
+
+
