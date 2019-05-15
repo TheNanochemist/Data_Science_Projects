@@ -1,0 +1,49 @@
+Code:
+#Final Assignment
+import urllib.request
+#First Year 2012
+with urllib.request.urlopen("https://s3.amazonaws.com/mikeghen/costs_2012.txt") as response:
+html1 = response.read().decode().split()
+html1 = [float(x[1:].replace(',', '')) for x in html1]
+length1=len(html1)
+print(html1[0:10]) #To view the first 10 numbers in the line for confirmation print("Population in 2012:",length1)
+avg2012 = (sum(html1)/len(html1))
+print("2012 Average Cost:",avg2012)
+tc2012 = sum(html1)
+print("Total Cost of Care 2012:",tc2012)
+print("######################################################################## ########")
+#Second Year 2014
+with urllib.request.urlopen("https://s3.amazonaws.com/mikeghen/costs_2014.txt") as response:
+html2 = response.read().decode().split()
+html2 = [float(x[1:].replace(',', '')) for x in html2]
+length2=len(html2)
+print(html2[0:10]) #To view the first 10 numbers in the line for confirmation print("Population in 2014:", length2)
+avg2014 = (sum(html2)/len(html2))
+print("2014 Average Cost:", avg2014) #To view the average
+tc2014 = sum(html2)
+print("Total Cost of Care 2014:",tc2014)
+ 
+print("######################################################################## ########")
+#Third Year 2016
+with urllib.request.urlopen("https://s3.amazonaws.com/mikeghen/costs_2016.txt") as response:
+html3 = response.read().decode().split()
+html3 = [float(x[1:].replace(',', '')) for x in html3]
+length3=len(html3)
+print(html3[0:10]) #To view the first 10 numbers in the line for confirmation print("Population in 2016:", length3)
+avg2016 = (sum(html3)/len(html3))
+print("2016 Average Cost:", avg2016) #To view the average
+tc2016 = sum(html3)
+print("Total Cost of Care 2014:",tc2016)
+print("######################################################################## ########")
+#Forecasting Calculations
+popdiff1 = length2 -length1 #Difference between population 1 and 2
+popdiff2 = length3 - length2 #Difference between population 2 and 3 avgdifference = (popdiff1 + popdiff2)/2 #Average difference between populations print("Average population change between years:", avgdifference)
+diffcost1 = avg2014 - avg2012 #difference in average costs from year 1 and year 2 diffcost2 = avg2016 - avg2014 # difference in average costs from year 2 and year 3 avgcostdiff = (diffcost1 + diffcost2)/2
+print("Average difference in costs between years:", avgcostdiff )
+diffTcost1 = tc2014 - tc2012
+diffTcost2 = tc2016 - tc2014
+avgTcostdiff = diffTcost1 + diffTcost2/2
+#Answer
+pop2018 = length3 + avgdifference print("Estimated 2018 Population:", pop2018) tc2018 = tc2016 + avgTcostdiff
+cost2018 = tc2018/pop2018
+print("Predicted Average cost of care:",cost2018)
